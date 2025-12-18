@@ -1,9 +1,18 @@
 <template>
   <q-page class="q-pa-md">
-    <q-card class="q-pa-md" style="max-width: 700px; margin: auto">
+    <!-- ================= BARRE EN HAUT ================= -->
+    <q-toolbar class="q-mb-md bg-primary text-white">
+      <q-btn flat dense round icon="arrow_back" @click="goDashboard" />
+      <q-toolbar-title>Prises quotidiennes</q-toolbar-title>
+      <q-btn flat dense round icon="add" label="Ajouter médicament" @click="goAddMedicament" />
+    </q-toolbar>
+
+    <q-card class="q-pa-md" style="max-width: 800px; margin: auto">
       <q-card-section>
-        <div class="text-h6 text-primary">Prises quotidiennes</div>
-        <div class="text-caption text-grey">Liste des médicaments à prendre aujourd'hui</div>
+        <div class="text-caption text-grey">
+          <h6>Liste des médicaments à prendre aujourd'hui</h6>
+          <h7> Cliquez sur le bouton "✓" pour marquer une prise comme effectuée. </h7>
+        </div>
       </q-card-section>
 
       <q-list bordered separator>
@@ -43,8 +52,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { getDailyPrises, markPriseAsDone } from 'src/services/prises'
 
+const router = useRouter()
 const userId = ref(1)
 const prises = ref([])
 
@@ -76,6 +87,15 @@ async function marquerPris(prise) {
   } catch (err) {
     console.error('Erreur lors du marquage de la prise :', err)
   }
+}
+
+/* 🔹 NAVIGATION */
+function goDashboard() {
+  router.push('/dashboard')
+}
+
+function goAddMedicament() {
+  router.push('/add-medicament')
 }
 
 onMounted(() => {
