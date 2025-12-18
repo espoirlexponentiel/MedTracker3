@@ -3,20 +3,21 @@ import lf from 'lovefield'
 
 /**
  * Génère les prises pour un traitement en fonction des heures saisies
- * @param {Object} medicament - Le médicament contenant date_debut, date_fin et heures
+ * @param {Object} medicament - Le médicament contenant date_debut, date_fin, heures, frequence, id_medicament et user_id
  */
 export async function generatePrisesForTreatment(medicament) {
   const db = getDB()
   const prisesTable = db.getSchema().table('prises')
 
-  // Vérifications basiques
   if (
     !medicament ||
     !medicament.date_debut ||
     !medicament.date_fin ||
-    !Array.isArray(medicament.heures)
+    !Array.isArray(medicament.heures) ||
+    !medicament.user_id ||
+    !medicament.id_medicament
   ) {
-    console.error('❌ Médicament ou dates/heures invalides')
+    console.error('❌ Médicament ou identifiants invalides', medicament)
     return
   }
 
@@ -32,12 +33,14 @@ export async function generatePrisesForTreatment(medicament) {
     console.warn(
       `⚠️ Le nombre d'heures (${medicament.heures.length}) ne correspond pas à la fréquence (${medicament.frequence})`,
     )
-    return
   }
+
+  // Assurer que les heures sont des strings
+  const heures = medicament.heures.map((h) => h.toString())
 
   const rows = []
   for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
-    for (const h of medicament.heures) {
+    for (const h of heures) {
       if (!h.includes(':')) continue
       const [hh, mm] = h.split(':').map(Number)
       const priseDate = new Date(d)
@@ -68,11 +71,14 @@ export async function generatePrisesForTreatment(medicament) {
 }
 
 /**
- * Récupère les prises du jour pour un utilisateur donné
- * @param {number} user_id
+ * Récupère les prises du jour pour l'utilisateur connecté
  * @returns {Promise<Array>}
  */
-export async function getDailyPrises(user_id) {
+export async function getDailyPrises() {
+  const user = JSON.parse(localStorage.getItem('user'))
+  if (!user || !user.id_user) throw new Error('Utilisateur non connecté')
+
+  const user_id = user.id_user
   const db = getDB()
   const prisesTable = db.getSchema().table('prises')
 
@@ -85,6 +91,7 @@ export async function getDailyPrises(user_id) {
     .select()
     .from(prisesTable)
     .where(lf.op.and(prisesTable.user_id.eq(user_id), prisesTable.heure.between(today, tomorrow)))
+    .orderBy(prisesTable.heure, lf.Order.ASC)
     .exec()
 }
 

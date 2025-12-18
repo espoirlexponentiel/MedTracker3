@@ -122,6 +122,12 @@ function ajouterHeure() {
 
 /* 🔹 Sauvegarde du médicament */
 async function saveMedicament() {
+  const user = JSON.parse(localStorage.getItem('user'))
+  if (!user || !user.id_user) {
+    $q.notify({ type: 'negative', message: 'Utilisateur non connecté' })
+    return
+  }
+
   if (!nom.value || !forme.value || !dose.value || !unite.value || !frequence.value) {
     $q.notify({ type: 'negative', message: 'Veuillez remplir tous les champs !' })
     return
@@ -158,7 +164,7 @@ async function saveMedicament() {
       heures: JSON.stringify(heures.value),
       date_debut: dateDebutObj,
       date_fin: dateFinObj,
-      user_id: 1,
+      user_id: user.id_user,
     })
 
     await db.insertOrReplace().into(medicamentsTable).values([row]).exec()
@@ -176,6 +182,7 @@ async function saveMedicament() {
         ...inserted[0],
         heures: heures.value,
         frequence: frequence.value,
+        user_id: user.id_user,
       })
       $q.notify({ type: 'positive', message: `Médicament "${nom.value}" enregistré ✅` })
     }
@@ -187,6 +194,12 @@ async function saveMedicament() {
 
 /* 🔹 Médicament test */
 async function saveTestMedicament() {
+  const user = JSON.parse(localStorage.getItem('user'))
+  if (!user || !user.id_user) {
+    $q.notify({ type: 'negative', message: 'Utilisateur non connecté' })
+    return
+  }
+
   try {
     const db = getDB()
     const medicamentsTable = db.getSchema().table('medicaments')
@@ -200,7 +213,7 @@ async function saveTestMedicament() {
       heures: ['07:00', '12:00', '18:00'],
       date_debut: new Date(),
       date_fin: new Date(new Date().setDate(new Date().getDate() + 2)),
-      user_id: 1,
+      user_id: user.id_user,
     })
 
     await db.insertOrReplace().into(medicamentsTable).values([row]).exec()
@@ -217,6 +230,7 @@ async function saveTestMedicament() {
         ...inserted[0],
         heures: ['07:00', '12:00', '18:00'],
         frequence: 3,
+        user_id: user.id_user,
       })
       $q.notify({ type: 'positive', message: 'Médicament test ajouté et prises générées ✅' })
     }

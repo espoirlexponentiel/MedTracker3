@@ -56,9 +56,17 @@ import { useRouter } from 'vue-router'
 import { getDailyPrises, markPriseAsDone } from 'src/services/prises'
 
 const router = useRouter()
-const userId = ref(1)
 const prises = ref([])
 
+/* 🔹 Récupérer l'utilisateur connecté */
+const user = JSON.parse(localStorage.getItem('user'))
+const userId = user?.id_user || null
+
+if (!userId) {
+  console.error('Utilisateur non connecté')
+}
+
+/* 🔹 Fonctions utilitaires */
 function formatHeure(date) {
   const d = new Date(date)
   if (isNaN(d.getTime())) return 'Date invalide'
@@ -71,15 +79,18 @@ function isLate(prise) {
   return prise.statut === 'À faire' && priseDate < now
 }
 
+/* 🔹 Chargement des prises */
 async function loadPrises() {
+  if (!userId) return
   try {
-    const data = await getDailyPrises(userId.value)
+    const data = await getDailyPrises(userId)
     prises.value = data.sort((a, b) => new Date(a.heure) - new Date(b.heure))
   } catch (err) {
     console.error('Erreur lors du chargement des prises :', err)
   }
 }
 
+/* 🔹 Marquer une prise comme faite */
 async function marquerPris(prise) {
   try {
     await markPriseAsDone(prise.id_prise)
