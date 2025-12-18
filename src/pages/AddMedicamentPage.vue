@@ -70,6 +70,9 @@ import { ref } from 'vue'
 import { getDB } from 'src/services/db'
 import { generatePrisesForTreatment } from 'src/services/prises'
 import lf from 'lovefield'
+import { useQuasar } from 'quasar'
+
+const $q = useQuasar()
 
 const nom = ref('')
 const forme = ref('')
@@ -85,24 +88,25 @@ function ajouterHeure() {
 }
 
 async function saveMedicament() {
+  // ✅ Vérifications
   if (!nom.value || !forme.value || !dose.value || !unite.value || !frequence.value) {
-    alert('Veuillez remplir tous les champs !')
+    $q.notify({ type: 'negative', message: 'Veuillez remplir tous les champs !' })
     return
   }
 
   if (!heures.value.some((h) => h)) {
-    alert('Veuillez entrer au moins une heure de prise !')
+    $q.notify({ type: 'negative', message: 'Veuillez entrer au moins une heure de prise !' })
     return
   }
 
   if (!dateDebut.value) {
-    alert('Veuillez sélectionner une date de début !')
+    $q.notify({ type: 'negative', message: 'Veuillez sélectionner une date de début !' })
     return
   }
 
   const dateDebutObj = new Date(dateDebut.value)
   if (isNaN(dateDebutObj.getTime())) {
-    alert('Date de début invalide !')
+    $q.notify({ type: 'negative', message: 'Date de début invalide !' })
     return
   }
 
@@ -110,80 +114,94 @@ async function saveMedicament() {
   if (dateFin.value) {
     dateFinObj = new Date(dateFin.value)
     if (isNaN(dateFinObj.getTime())) {
-      alert('Date de fin invalide !')
+      $q.notify({ type: 'negative', message: 'Date de fin invalide !' })
       return
     }
   } else {
-    const totalComprime = 30 // exemple, à adapter
+    // Calcul automatique si pas de date fin
+    const totalComprime = 30 // exemple, adapter selon la vraie logique
     const nbreJours = Math.ceil(totalComprime / (dose.value * frequence.value))
     dateFinObj = new Date(dateDebutObj)
     dateFinObj.setDate(dateDebutObj.getDate() + nbreJours - 1)
   }
 
-  const db = getDB()
-  const medicamentsTable = db.getSchema().table('medicaments')
+  try {
+    const db = getDB()
+    const medicamentsTable = db.getSchema().table('medicaments')
 
-  const row = medicamentsTable.createRow({
-    nom: nom.value,
-    forme: forme.value,
-    dose: dose.value,
-    unite: unite.value,
-    frequence: frequence.value,
-    heures: heures.value.filter((h) => h !== ''),
-    date_debut: dateDebutObj,
-    date_fin: dateFinObj,
-    user_id: 1,
-  })
+    const row = medicamentsTable.createRow({
+      nom: nom.value,
+      forme: forme.value,
+      dose: dose.value,
+      unite: unite.value,
+      frequence: frequence.value,
+      heures: heures.value.filter((h) => h !== ''),
+      date_debut: dateDebutObj,
+      date_fin: dateFinObj,
+      user_id: 1,
+    })
 
-  await db.insertOrReplace().into(medicamentsTable).values([row]).exec()
+    await db.insertOrReplace().into(medicamentsTable).values([row]).exec()
 
-  // 🔹 récupérer l’ID généré automatiquement
-  const inserted = await db
-    .select()
-    .from(medicamentsTable)
-    .where(medicamentsTable.nom.eq(nom.value))
-    .orderBy(medicamentsTable.id_medicament, lf.Order.DESC)
-    .limit(1)
-    .exec()
+    // 🔹 récupérer l’ID généré automatiquement
+    const inserted = await db
+      .select()
+      .from(medicamentsTable)
+      .where(medicamentsTable.nom.eq(nom.value))
+      .orderBy(medicamentsTable.id_medicament, lf.Order.DESC)
+      .limit(1)
+      .exec()
 
-  if (!inserted.length) {
-    alert('Erreur lors de l’insertion du médicament')
-    return
+    if (!inserted.length) {
+      $q.notify({ type: 'negative', message: 'Erreur lors de l’insertion du médicament.' })
+      return
+    }
+
+    await generatePrisesForTreatment(inserted[0])
+    $q.notify({
+      type: 'positive',
+      message: `Médicament "${nom.value}" enregistré avec ses prises ✅`,
+    })
+  } catch (err) {
+    console.error(err)
+    $q.notify({ type: 'negative', message: 'Une erreur est survenue lors de l’enregistrement.' })
   }
-
-  await generatePrisesForTreatment(inserted[0])
-  alert(`Médicament "${nom.value}" enregistré avec ses prises ✅`)
 }
 
 async function saveTestMedicament() {
-  const db = getDB()
-  const medicamentsTable = db.getSchema().table('medicaments')
+  try {
+    const db = getDB()
+    const medicamentsTable = db.getSchema().table('medicaments')
 
-  const row = medicamentsTable.createRow({
-    nom: 'Paracetamol',
-    forme: 'Comprimé',
-    dose: 500,
-    unite: 'mg',
-    frequence: 3,
-    heures: ['07:00', '12:00', '18:00'],
-    date_debut: new Date(),
-    date_fin: new Date(new Date().setDate(new Date().getDate() + 2)),
-    user_id: 1,
-  })
+    const row = medicamentsTable.createRow({
+      nom: 'Paracetamol',
+      forme: 'Comprimé',
+      dose: 500,
+      unite: 'mg',
+      frequence: 3,
+      heures: ['07:00', '12:00', '18:00'],
+      date_debut: new Date(),
+      date_fin: new Date(new Date().setDate(new Date().getDate() + 2)),
+      user_id: 1,
+    })
 
-  await db.insertOrReplace().into(medicamentsTable).values([row]).exec()
+    await db.insertOrReplace().into(medicamentsTable).values([row]).exec()
 
-  const inserted = await db
-    .select()
-    .from(medicamentsTable)
-    .where(medicamentsTable.nom.eq('Paracetamol'))
-    .orderBy(medicamentsTable.id_medicament, lf.Order.DESC)
-    .limit(1)
-    .exec()
+    const inserted = await db
+      .select()
+      .from(medicamentsTable)
+      .where(medicamentsTable.nom.eq('Paracetamol'))
+      .orderBy(medicamentsTable.id_medicament, lf.Order.DESC)
+      .limit(1)
+      .exec()
 
-  if (inserted.length) {
-    await generatePrisesForTreatment(inserted[0])
-    console.log('✅ Médicament test ajouté et prises générées')
+    if (inserted.length) {
+      await generatePrisesForTreatment(inserted[0])
+      $q.notify({ type: 'positive', message: 'Médicament test ajouté et prises générées ✅' })
+    }
+  } catch (err) {
+    console.error(err)
+    $q.notify({ type: 'negative', message: 'Erreur lors de l’ajout du médicament test.' })
   }
 }
 </script>

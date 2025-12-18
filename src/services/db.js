@@ -6,7 +6,7 @@ export async function initDB() {
   if (db) return db
 
   // ⚠️ Incrémente la version si tu modifies la structure
-  const schemaBuilder = lf.schema.create('medtrackerDB', 9)
+  const schemaBuilder = lf.schema.create('medtrackerDB', 12)
 
   // -----------------------------
   // Table des utilisateurs

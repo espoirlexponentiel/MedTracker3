@@ -10,7 +10,10 @@
         <q-item
           v-for="prise in prises"
           :key="prise.id_prise"
-          :class="{ 'bg-red-2': isLate(prise) }"
+          :class="{
+            'bg-red-2': isLate(prise),
+            'bg-green-2': prise.statut === 'Fait',
+          }"
         >
           <q-item-section>
             <q-item-label>{{ prise.nom }} ({{ prise.forme }})</q-item-label>
@@ -21,7 +24,6 @@
           </q-item-section>
 
           <q-item-section side>
-            <!-- Badge si en retard -->
             <q-badge v-if="isLate(prise)" color="negative" label="En retard" class="q-mr-sm" />
 
             <q-btn
@@ -43,26 +45,37 @@
 import { ref, onMounted } from 'vue'
 import { getDailyPrises, markPriseAsDone } from 'src/services/prises'
 
-const userId = 1 // ⚠️ à remplacer par l'utilisateur connecté
+const userId = ref(1)
 const prises = ref([])
 
 function formatHeure(date) {
-  return new Date(date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  const d = new Date(date)
+  if (isNaN(d.getTime())) return 'Date invalide'
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
 }
 
 function isLate(prise) {
   const now = new Date()
-  return prise.statut === 'À faire' && new Date(prise.heure) < now
+  const priseDate = new Date(prise.heure)
+  return prise.statut === 'À faire' && priseDate < now
 }
 
 async function loadPrises() {
-  prises.value = await getDailyPrises(userId)
-  console.log('Prises du jour :', prises.value)
+  try {
+    const data = await getDailyPrises(userId.value)
+    prises.value = data.sort((a, b) => new Date(a.heure) - new Date(b.heure))
+  } catch (err) {
+    console.error('Erreur lors du chargement des prises :', err)
+  }
 }
 
 async function marquerPris(prise) {
-  await markPriseAsDone(prise.id_prise)
-  prise.statut = 'Fait'
+  try {
+    await markPriseAsDone(prise.id_prise)
+    await loadPrises()
+  } catch (err) {
+    console.error('Erreur lors du marquage de la prise :', err)
+  }
 }
 
 onMounted(() => {

@@ -11,9 +11,7 @@ export default defineConfig((/* ctx */) => {
     // app boot file (/src/boot)
     // --> boot files are part of "main.js"
     // https://v2.quasar.dev/quasar-cli-vite/boot-files
-    boot: [
-      'lovefield',
-    ],
+    boot: ['loader', 'lovefield'],
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#css
     css: ['app.scss'],
@@ -80,21 +78,20 @@ export default defineConfig((/* ctx */) => {
 
     // https://v2.quasar.dev/quasar-cli-vite/quasar-config-file#framework
     // quasar.config.js
-cssAddon: true,
-framework: {
-  cssAddon: true,
-  config: {
-    brand: {
-      primary: '#226D68',   // bleu
-      secondary: '#AD956B', // gris foncé
-      accent: '#A89723',    // jaune
-      positive: '#AD956B',  // doré
-      background: '#E3CD8B' // fond clair
-    }
-  }
-}
-,
-
+    cssAddon: true,
+    framework: {
+      cssAddon: true,
+      config: {
+        brand: {
+          primary: '#226D68', // bleu
+          secondary: '#AD956B', // gris foncé
+          accent: '#A89723', // jaune
+          positive: '#AD956B', // doré
+          background: '#E3CD8B', // fond clair
+        },
+      },
+      plugins: ['Notify'],
+    },
     // animations: 'all', // --- includes all animations
     // https://v2.quasar.dev/options/animations
     animations: [],
